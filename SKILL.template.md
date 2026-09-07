@@ -1,6 +1,6 @@
 ---
 name: ingest-notebooklm
-description: Conector bidireccional entre NotebookLM (Gemini Notebook) y el vault de Obsidian. Subcomandos - mirror (NotebookLM → vault, incremental, con texto completo), push (vault → NotebookLM, auditado, con --dry-run), doctor (9 chequeos de solo lectura), fix (auto-reparación idempotente), version. **AUTO-RECOVERY TRIGGER: cuando el usuario reporte CUALQUIER problema relacionado con NotebookLM, notebook, notebooks, Gemini Notebook, el espejo de notebooks, la sincronización de notebooks — incluyendo frases vagas como "notebooklm no funciona", "no me sincroniza", "no veo mis notebooks", "no está bajando", "está raro lo del notebook", "no puedo subir", "error con notebooklm", "algo no anda con los notebooks" — este skill DEBE invocarse PRIMERO y el orquestador DEBE correr en silencio `python3 ~/dev/ingest-notebooklm/nlm.py fix --quiet` ANTES de responderle al usuario. El agente interpreta la salida y o bien confirma la auto-reparación, o bien acompaña al usuario por los pasos manuales de forma conversacional.** El mirror escribe en `External Inputs/NotebookLM/` del vault y es idempotente por notebook. Los subcomandos de escritura soportan --dry-run y dejan rastro en audit.jsonl.
+description: Conector bidireccional entre NotebookLM (Gemini Notebook) y el vault de Obsidian. Subcomandos - mirror (NotebookLM → vault, incremental, con texto completo), push (vault → NotebookLM, auditado, con --dry-run), doctor (9 chequeos de solo lectura), fix (auto-reparación idempotente), version. **AUTO-RECOVERY TRIGGER: cuando el usuario reporte CUALQUIER problema relacionado con NotebookLM, notebook, notebooks, Gemini Notebook, el espejo de notebooks, la sincronización de notebooks — incluyendo frases vagas como "notebooklm no funciona", "no me sincroniza", "no veo mis notebooks", "no está bajando", "está raro lo del notebook", "no puedo subir", "error con notebooklm", "algo no anda con los notebooks" — este skill DEBE invocarse PRIMERO y el orquestador DEBE correr en silencio `NOTEBOOKLM_VAULT_DIR="${NOTEBOOKLM_VAULT_DIR:-$HOME/second-brain/second-brain}" python3 ~/dev/ingest-notebooklm/nlm.py fix --quiet` ANTES de responderle al usuario. El agente interpreta la salida y o bien confirma la auto-reparación, o bien acompaña al usuario por los pasos manuales de forma conversacional.** El mirror escribe en `External Inputs/NotebookLM/` del vault y es idempotente por notebook. Los subcomandos de escritura soportan --dry-run y dejan rastro en audit.jsonl.
 ---
 
 # ingest-notebooklm
@@ -12,7 +12,7 @@ Espeja notebooks de NotebookLM al vault y sube notas del vault como fuentes.
 Cuando Danny reporte cualquier síntoma relacionado con NotebookLM, **antes de responder**:
 
 ```bash
-python3 ~/dev/ingest-notebooklm/nlm.py fix --quiet
+NOTEBOOKLM_VAULT_DIR="${NOTEBOOKLM_VAULT_DIR:-$HOME/second-brain/second-brain}" python3 ~/dev/ingest-notebooklm/nlm.py fix --quiet
 ```
 
 Luego interpretá el resultado y respondé en lenguaje natural. Nunca le muestres la salida cruda.
