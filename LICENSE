@@ -19,3 +19,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+────────────────────────────────────────────────────────────────────────
+
+Este proyecto es una capa operativa sobre notebooklm-py (Copyright (c) 2026
+Teng Lin, MIT), que aporta todo el acceso a NotebookLM y cerca del 99% del
+código involucrado. Ver NOTICE para el detalle de la atribución.

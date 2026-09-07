@@ -1,46 +1,72 @@
 #!/usr/bin/env bash
-# install.sh — instalador idempotente de ingest-notebooklm (6 pasos).
-# No hace bootstrap de launchd: eso requiere tu autorización explícita.
+# install.sh — instalador idempotente de ingest-notebooklm.
+#
+# Uso interactivo:   ./install.sh
+# Uso por un agente: ./install.sh --vault "$HOME/mi-vault" --skill --yes
+#
+# Con --yes nunca pregunta nada: si falta un dato, falla con un mensaje
+# accionable en vez de quedarse esperando en un prompt que nadie va a contestar.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${NOTEBOOKLM_STATE_DIR:-$HOME/.config/ingest-notebooklm}"
-PLIST_DST="$HOME/Library/LaunchAgents/com.ingest-notebooklm.plist"
+# Overridable so a test install cannot clobber a real LaunchAgent.
+LAUNCH_AGENTS_DIR="${LAUNCH_AGENTS_DIR:-$HOME/Library/LaunchAgents}"
+PLIST_DST="$LAUNCH_AGENTS_DIR/com.ingest-notebooklm.plist"
+SKILL_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills/ingest-notebooklm}"
+
+VAULT="${NOTEBOOKLM_VAULT_DIR:-}"
+INSTALL_SKILL=0
+NON_INTERACTIVE=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --vault) VAULT="${2:-}"; shift 2 ;;
+    --vault=*) VAULT="${1#*=}"; shift ;;
+    --skill) INSTALL_SKILL=1; shift ;;
+    --yes|-y|--non-interactive) NON_INTERACTIVE=1; shift ;;
+    -h|--help)
+      sed -n '2,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) printf 'Opción desconocida: %s\n' "$1" >&2; exit 2 ;;
+  esac
+done
 
 say()  { printf '%s\n' "$*"; }
 fail() { printf '✗ %s\n' "$*" >&2; exit 1; }
 
 # ── 1. Dependencias ─────────────────────────────────────────────────────────
 say "1/6 · Verificando dependencias"
-[[ "${BASH_VERSINFO[0]}" -ge 3 ]] || fail "se requiere bash 3+"
-command -v python3 >/dev/null || fail "falta python3 (3.10+)"
+command -v python3 >/dev/null || fail "falta python3 (se requiere 3.10+)"
 python3 - <<'PY' || fail "se requiere Python 3.10 o superior"
 import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)
 PY
-# The LaunchAgent must run the SAME interpreter we just validated. macOS ships
-# /usr/bin/python3 at 3.9, so hardcoding it would let the daemon break silently
-# while the shell keeps working.
-PYBIN="$(command -v python3)"
-if ! command -v notebooklm >/dev/null && [[ ! -x "$HOME/.local/bin/notebooklm" ]]; then
+if ! command -v notebooklm >/dev/null && [ ! -x "$HOME/.local/bin/notebooklm" ]; then
   fail "falta el CLI notebooklm. Instalalo con:
      uv tool install \"notebooklm-py[browser,mcp,markdown]\""
 fi
-say "    ✓ bash, python3 ($(python3 -V 2>&1 | cut -d\  -f2)), notebooklm"
+# The LaunchAgent must run the SAME interpreter validated here: macOS ships
+# /usr/bin/python3 at 3.9, so hardcoding it lets the daemon break silently.
+PYBIN="$(command -v python3)"
+say "    ✓ python3 ($(python3 -V 2>&1 | cut -d' ' -f2)) · notebooklm · $PYBIN"
 
 # ── 2. Vault ────────────────────────────────────────────────────────────────
 say "2/6 · Ubicando el vault"
-VAULT="${NOTEBOOKLM_VAULT_DIR:-${VAULT_DIR:-}}"
-if [[ -z "$VAULT" ]]; then
-  for guess in "$HOME/vault" "$HOME/Obsidian" "$HOME/Documents/vault" "$HOME/Documents/second-brain" "$HOME/second-brain/second-brain"; do
-    [[ -d "$guess" ]] && { VAULT="$guess"; break; }
+if [ -z "$VAULT" ]; then
+  for guess in "$HOME/vault" "$HOME/Obsidian" "$HOME/Documents/vault" \
+               "$HOME/Documents/Obsidian" "$HOME/Notes"; do
+    [ -d "$guess" ] && { VAULT="$guess"; break; }
   done
 fi
-if [[ -z "$VAULT" || ! -d "$VAULT" ]]; then
+if [ -z "$VAULT" ]; then
+  if [ "$NON_INTERACTIVE" -eq 1 ]; then
+    fail "no se detectó el vault. Pasá --vault \"/ruta/a/tu/vault\""
+  fi
   read -r -p "    Ruta absoluta del vault: " VAULT
 fi
-[[ -d "$VAULT" ]] || fail "no existe: $VAULT"
-# Write to the rc file of the shell actually in use — assuming zsh silently
-# strands bash users without the env var and with no hint why.
+VAULT="${VAULT/#\~/$HOME}"
+[ -d "$VAULT" ] || fail "no existe el directorio: $VAULT"
+say "    ✓ $VAULT"
+
 case "$(basename "${SHELL:-}")" in
   zsh)  RC="$HOME/.zshrc" ;;
   bash) RC="$HOME/.bash_profile"; [ -f "$HOME/.bashrc" ] && RC="$HOME/.bashrc" ;;
@@ -48,7 +74,7 @@ case "$(basename "${SHELL:-}")" in
   *)    RC="" ;;
 esac
 if [ -z "$RC" ]; then
-  say "    ! Shell no reconocido (${SHELL:-desconocido}). Exportá a mano:"
+  say "    ! Shell no reconocido. Exportá a mano:"
   say "        export NOTEBOOKLM_VAULT_DIR=\"$VAULT\""
 elif grep -q "NOTEBOOKLM_VAULT_DIR" "$RC" 2>/dev/null; then
   say "    ✓ NOTEBOOKLM_VAULT_DIR ya estaba en $RC"
@@ -65,24 +91,34 @@ fi
 # ── 3. Directorio de estado ─────────────────────────────────────────────────
 say "3/6 · Preparando el directorio de estado"
 mkdir -p "$STATE_DIR"; chmod 700 "$STATE_DIR"
-[[ -f "$STATE_DIR/config.json" ]] || cp "$SCRIPT_DIR/config.example.json" "$STATE_DIR/config.json"
+[ -f "$STATE_DIR/config.json" ] || cp "$SCRIPT_DIR/config.example.json" "$STATE_DIR/config.json"
 say "    ✓ $STATE_DIR (modo 0700)"
 
-# ── 4. LaunchAgent ──────────────────────────────────────────────────────────
-say "4/6 · Generando el LaunchAgent"
-mkdir -p "$HOME/Library/LaunchAgents"
-sed -e "s|__PYTHON__|$PYBIN|g" \
-    -e "s|__SCRIPT_DIR__|$SCRIPT_DIR|g" \
-    -e "s|__VAULT_DIR__|$VAULT|g" \
-    -e "s|__STATE_DIR__|$STATE_DIR|g" \
-    -e "s|__USER_HOME__|$HOME|g" \
-    "$SCRIPT_DIR/com.ingest-notebooklm.plist.template" > "$PLIST_DST"
-say "    ✓ $PLIST_DST"
+# ── 4. Agendamiento + skill ─────────────────────────────────────────────────
+say "4/6 · Generando el agendamiento"
+if [ "$(uname -s)" = "Darwin" ]; then
+  mkdir -p "$LAUNCH_AGENTS_DIR"
+  sed -e "s|__PYTHON__|$PYBIN|g" -e "s|__SCRIPT_DIR__|$SCRIPT_DIR|g" \
+      -e "s|__VAULT_DIR__|$VAULT|g" -e "s|__STATE_DIR__|$STATE_DIR|g" \
+      -e "s|__USER_HOME__|$HOME|g" \
+      "$SCRIPT_DIR/com.ingest-notebooklm.plist.template" > "$PLIST_DST"
+  say "    ✓ $PLIST_DST (no se carga solo: requiere tu autorización)"
+else
+  say "    ! $(uname -s): launchd es solo macOS. Agendalo con cron/systemd:"
+  say "        $PYBIN $SCRIPT_DIR/nlm.py mirror"
+fi
+
+if [ "$INSTALL_SKILL" -eq 1 ]; then
+  mkdir -p "$SKILL_DIR"
+  sed -e "s|__SCRIPT_DIR__|$SCRIPT_DIR|g" -e "s|__VAULT_DIR__|$VAULT|g" \
+      "$SCRIPT_DIR/SKILL.template.md" > "$SKILL_DIR/SKILL.md"
+  say "    ✓ skill instalado en $SKILL_DIR"
+fi
 
 # ── 5. Smoke test ───────────────────────────────────────────────────────────
 say "5/6 · Chequeo de salud"
 NOTEBOOKLM_VAULT_DIR="$VAULT" NOTEBOOKLM_STATE_DIR="$STATE_DIR" \
-  python3 "$SCRIPT_DIR/nlm.py" doctor || true
+  "$PYBIN" "$SCRIPT_DIR/nlm.py" doctor || true
 
 # ── 6. Siguientes pasos ─────────────────────────────────────────────────────
 cat <<EOF
@@ -94,9 +130,9 @@ cat <<EOF
      (no cierres la ventana: se cierra sola al detectar el login)
 
   2) Probá un espejo corto, sin escribir nada:
-       python3 $SCRIPT_DIR/nlm.py --dry-run mirror --max-notebooks 3
+       $PYBIN $SCRIPT_DIR/nlm.py --dry-run mirror --max-notebooks 3
 
-  3) Cuando estés conforme, activá el agendamiento (cada 6 h):
+  3) Para agendarlo cada 6 h (macOS):
        launchctl bootstrap gui/\$(id -u) $PLIST_DST
 
   4) Ajustes finos: $STATE_DIR/config.json

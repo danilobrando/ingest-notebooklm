@@ -1,6 +1,6 @@
 ---
 name: ingest-notebooklm
-description: Conector bidireccional entre NotebookLM (Gemini Notebook) y el vault de Obsidian. Subcomandos - mirror (NotebookLM → vault, incremental, con texto completo), push (vault → NotebookLM, auditado, con --dry-run), doctor (9 chequeos de solo lectura), fix (auto-reparación idempotente), version. **AUTO-RECOVERY TRIGGER: cuando el usuario reporte CUALQUIER problema relacionado con NotebookLM, notebook, notebooks, Gemini Notebook, el espejo de notebooks, la sincronización de notebooks — incluyendo frases vagas como "notebooklm no funciona", "no me sincroniza", "no veo mis notebooks", "no está bajando", "está raro lo del notebook", "no puedo subir", "error con notebooklm", "algo no anda con los notebooks" — este skill DEBE invocarse PRIMERO y el orquestador DEBE correr en silencio `NOTEBOOKLM_VAULT_DIR="${NOTEBOOKLM_VAULT_DIR:-$HOME/second-brain/second-brain}" python3 ~/dev/ingest-notebooklm/nlm.py fix --quiet` ANTES de responderle al usuario. El agente interpreta la salida y o bien confirma la auto-reparación, o bien acompaña al usuario por los pasos manuales de forma conversacional.** El mirror escribe en `External Inputs/NotebookLM/` del vault y es idempotente por notebook. Los subcomandos de escritura soportan --dry-run y dejan rastro en audit.jsonl.
+description: Conector bidireccional entre NotebookLM (Gemini Notebook) y el vault de Obsidian. Subcomandos - mirror (NotebookLM → vault, incremental, con texto completo), push (vault → NotebookLM, auditado, con --dry-run), doctor (9 chequeos de solo lectura), fix (auto-reparación idempotente), version. **AUTO-RECOVERY TRIGGER: cuando el usuario reporte CUALQUIER problema relacionado con NotebookLM, notebook, notebooks, Gemini Notebook, el espejo de notebooks, la sincronización de notebooks — incluyendo frases vagas como "notebooklm no funciona", "no me sincroniza", "no veo mis notebooks", "no está bajando", "está raro lo del notebook", "no puedo subir", "error con notebooklm", "algo no anda con los notebooks" — este skill DEBE invocarse PRIMERO y el orquestador DEBE correr en silencio `NOTEBOOKLM_VAULT_DIR="__VAULT_DIR__" python3 __SCRIPT_DIR__/nlm.py fix --quiet` ANTES de responderle al usuario. El agente interpreta la salida y o bien confirma la auto-reparación, o bien acompaña al usuario por los pasos manuales de forma conversacional.** El mirror escribe en `External Inputs/NotebookLM/` del vault y es idempotente por notebook. Los subcomandos de escritura soportan --dry-run y dejan rastro en audit.jsonl.
 ---
 
 # ingest-notebooklm
@@ -12,7 +12,7 @@ Espeja notebooks de NotebookLM al vault y sube notas del vault como fuentes.
 Cuando Danny reporte cualquier síntoma relacionado con NotebookLM, **antes de responder**:
 
 ```bash
-NOTEBOOKLM_VAULT_DIR="${NOTEBOOKLM_VAULT_DIR:-$HOME/second-brain/second-brain}" python3 ~/dev/ingest-notebooklm/nlm.py fix --quiet
+NOTEBOOKLM_VAULT_DIR="__VAULT_DIR__" python3 __SCRIPT_DIR__/nlm.py fix --quiet
 ```
 
 Luego interpretá el resultado y respondé en lenguaje natural. Nunca le muestres la salida cruda.
@@ -48,7 +48,7 @@ Si falla con *"browser window was closed"*: pedile que cierre Chrome por complet
 - No le muestres la salida cruda del `fix` ni trazas de error.
 - No le preguntes "¿qué comando corro?" — vos ya sabés cuál.
 - No menciones términos internos: token, cookie, OAuth, sentinel, cursor, lock.
-- No corras `mirror --force` sobre los 391 notebooks sin avisarle: son horas de llamadas y sube el riesgo de bloqueo de la cuenta.
+- No corras `mirror --force` sobre toda la biblioteca sin avisarle: son horas de llamadas y sube el riesgo de bloqueo de la cuenta.
 
 ## Después de una recuperación exitosa
 
@@ -62,14 +62,14 @@ Solo después de: (1) corriste `fix`, (2) él siguió los pasos manuales, (3) si
 
 ```bash
 # Espejo incremental (lo que corre el LaunchAgent cada 6 h)
-python3 ~/dev/ingest-notebooklm/nlm.py mirror
+python3 __SCRIPT_DIR__/nlm.py mirror
 
 # Ensayo sin escribir nada
-python3 ~/dev/ingest-notebooklm/nlm.py --dry-run mirror --max-notebooks 5
+python3 __SCRIPT_DIR__/nlm.py --dry-run mirror --max-notebooks 5
 
 # Subir notas del vault a un notebook (siempre ensayar primero)
-python3 ~/dev/ingest-notebooklm/nlm.py --dry-run push --notebook <id> --folder "<carpeta>" --glob '*.md'
+python3 __SCRIPT_DIR__/nlm.py --dry-run push --notebook <id> --folder "<carpeta>" --glob '*.md'
 
 # Salud
-python3 ~/dev/ingest-notebooklm/nlm.py doctor
+python3 __SCRIPT_DIR__/nlm.py doctor
 ```

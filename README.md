@@ -1,5 +1,9 @@
 # ingest-notebooklm
 
+> **Esto no es un cliente de NotebookLM.** Es una capa operativa sobre
+> [`notebooklm-py`](https://github.com/teng-lin/notebooklm-py), de Teng Lin,
+> que hace todo el trabajo pesado. Ver [NOTICE](NOTICE).
+
 Tus notebooks de NotebookLM, espejados a tu vault de Obsidian — y tus notas del vault, subidas como fuentes.
 
 ## Requisitos
@@ -13,8 +17,11 @@ Tus notebooks de NotebookLM, espejados a tu vault de Obsidian — y tus notas de
 ```bash
 uv tool install "notebooklm-py[browser,mcp,markdown]"
 notebooklm login --fresh --browser chrome
-./install.sh
+./install.sh --vault "/ruta/a/tu/vault" --skill
 ```
+
+Para instalación desatendida (por un agente), agregá `--yes`: nunca abre un
+prompt, y si falta un dato falla con un mensaje accionable.
 
 ## Cómo se ve
 
@@ -104,6 +111,21 @@ romperse sin aviso, y el uso automatizado intenso puede acarrear bloqueo de la
 cuenta. Los defaults son conservadores por eso. Si la cuenta que usás sostiene
 otras cosas (correo, Drive), tenelo presente antes de subir el ritmo.
 
+## Créditos
+
+El acceso a NotebookLM —ingeniería inversa de las APIs internas de Google,
+manejo de sesión, CLI y servidor MCP— es obra de
+**[Teng Lin](https://github.com/teng-lin/notebooklm-py)** y son ~114.000
+líneas. Este repositorio son ~1.300: el espejo hacia el vault, los chequeos
+de salud, la auto-reparación, el registro de auditoría y el agendamiento.
+
+Si esto te sirve, la estrella va a [notebooklm-py](https://github.com/teng-lin/notebooklm-py).
+
+## Para agentes
+
+¿Sos un agente de IA instalando esto? Leé [AGENTS.md](AGENTS.md): instalación
+desatendida, el paso que requiere una persona, y las reglas al operarlo.
+
 ## Licencia
 
-MIT — ver [LICENSE](LICENSE).
+MIT — ver [LICENSE](LICENSE) y [NOTICE](NOTICE).

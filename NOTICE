@@ -1,0 +1,28 @@
+ingest-notebooklm
+Copyright (c) 2026 Danny Bravo
+Licensed under the MIT License (see LICENSE).
+
+────────────────────────────────────────────────────────────────────────
+ATRIBUCIÓN — lo que este proyecto NO escribió
+────────────────────────────────────────────────────────────────────────
+
+Este proyecto es una CAPA OPERATIVA sobre notebooklm-py. Todo el acceso a
+NotebookLM — ingeniería inversa de las APIs internas de Google, manejo de
+sesión, CLI, servidor MCP — es obra de:
+
+    notebooklm-py
+    Copyright (c) 2026 Teng Lin
+    MIT License
+    https://github.com/teng-lin/notebooklm-py
+
+Proporción, para que nadie se confunda: notebooklm-py son ~114.000 líneas
+en 356 archivos. Este repositorio son ~1.300 líneas en 3 archivos, cerca
+del 1%. Si buscás el trabajo difícil, está en el repositorio de Teng Lin.
+
+Lo que aporta este proyecto: espejo incremental hacia un vault de Obsidian
+con cursor reanudable, chequeos de salud, auto-reparación, registro de
+auditoría, limitación de tasa, agendamiento y una skill de agente con
+política de recuperación.
+
+Ambos proyectos son MIT y compatibles. Si esto te sirve, la estrella va
+al repositorio de arriba.
