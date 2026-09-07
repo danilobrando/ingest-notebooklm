@@ -1,0 +1,9 @@
+{
+  "_comment": "Copiá a ~/.config/ingest-notebooklm/config.json y ajustá. Sin PII acá.",
+  "max_notebooks_per_run": 25,
+  "rate_limit_seconds": 1.5,
+  "max_pages": 4,
+  "call_timeout_seconds": 180,
+  "mirror_fulltext": true,
+  "profile": "default"
+}

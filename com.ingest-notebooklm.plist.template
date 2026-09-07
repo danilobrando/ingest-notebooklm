@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ingest-notebooklm</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PYTHON__</string>
+    <string>__SCRIPT_DIR__/nlm.py</string>
+    <string>mirror</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NOTEBOOKLM_VAULT_DIR</key>
+    <string>__VAULT_DIR__</string>
+    <key>NOTEBOOKLM_STATE_DIR</key>
+    <string>__STATE_DIR__</string>
+    <key>NOTEBOOKLM_BIN</key>
+    <string>__USER_HOME__/.local/bin/notebooklm</string>
+    <key>PATH</key>
+    <string>__USER_HOME__/.local/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <!-- Cada 6 h. El espejo es incremental: drena el backlog de a tandas. -->
+  <key>StartInterval</key>
+  <integer>21600</integer>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>__STATE_DIR__/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__STATE_DIR__/launchd.err.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+  <key>Nice</key>
+  <integer>5</integer>
+</dict>
+</plist>

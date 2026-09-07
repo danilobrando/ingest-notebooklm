@@ -1,0 +1,16 @@
+# Estado operativo — nunca en el repo
+*.jsonl
+*.lock
+*.log
+mirror-cursor.json
+.env*
+config.json
+
+# Cruft de runtime
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Reportes locales
+BUILD-REPORT.md
